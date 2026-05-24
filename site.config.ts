@@ -17,9 +17,9 @@ export default siteConfig({
   description: 'About me and portfolio',
 
   // social usernames (optional)
-  twitter: null,
+  twitter: undefined,
   github: 'guusyy',
-  linkedin: null,
+  linkedin: undefined,
   // mastodon: '#', // optional mastodon profile URL, provides link verification
   // newsletter: '#', // optional newsletter URL
   // youtube: '#', // optional youtube channel name or `channel/UCGbXXXXXXXXXXXXXXXXXXXXXX`
