@@ -1,21 +1,22 @@
+import { type ExtendedRecordMap } from 'notion-types'
 import { parsePageId } from 'notion-utils'
-import { ExtendedRecordMap } from 'notion-types'
 
+import type { PageProps } from './types'
 import * as acl from './acl'
-import * as types from './types'
-import { pageUrlOverrides, pageUrlAdditions, environment } from './config'
+import { environment, pageUrlAdditions, pageUrlOverrides, site } from './config'
 import { db } from './db'
+import { getSiteMap } from './get-site-map'
 import { getPage } from './notion'
-import { getSiteMaps } from './get-site-maps'
-import { getSiteForDomain } from './get-site-for-domain'
 
-export async function resolveNotionPage(domain: string, rawPageId?: string) {
-  let site: types.Site
-  let pageId: string
+export async function resolveNotionPage(
+  domain: string,
+  rawPageId?: string
+): Promise<PageProps> {
+  let pageId: string | undefined
   let recordMap: ExtendedRecordMap
 
   if (rawPageId && rawPageId !== 'index') {
-    pageId = parsePageId(rawPageId)
+    pageId = parsePageId(rawPageId)!
 
     if (!pageId) {
       // check if the site configuration provides an override or a fallback for
@@ -24,7 +25,7 @@ export async function resolveNotionPage(domain: string, rawPageId?: string) {
         pageUrlOverrides[rawPageId] || pageUrlAdditions[rawPageId]
 
       if (override) {
-        pageId = parsePageId(override)
+        pageId = parsePageId(override)!
       }
     }
 
@@ -40,34 +41,26 @@ export async function resolveNotionPage(domain: string, rawPageId?: string) {
         pageId = await db.get(cacheKey)
 
         // console.log(`redis get "${cacheKey}"`, pageId)
-      } catch (err) {
+      } catch (err: any) {
         // ignore redis errors
         console.warn(`redis error get "${cacheKey}"`, err.message)
       }
     }
 
     if (pageId) {
-      ;[site, recordMap] = await Promise.all([
-        getSiteForDomain(domain),
-        getPage(pageId)
-      ])
+      recordMap = await getPage(pageId)
     } else {
       // handle mapping of user-friendly canonical page paths to Notion page IDs
       // e.g., /developer-x-entrepreneur versus /71201624b204481f862630ea25ce62fe
-      const siteMaps = await getSiteMaps()
-      const siteMap = siteMaps[0]
+      const siteMap = await getSiteMap()
       pageId = siteMap?.canonicalPageMap[rawPageId]
 
       if (pageId) {
         // TODO: we're not re-using the page recordMap from siteMaps because it is
         // cached aggressively
-        // site = await getSiteForDomain(domain)
         // recordMap = siteMap.pageMap[pageId]
 
-        ;[site, recordMap] = await Promise.all([
-          getSiteForDomain(domain),
-          getPage(pageId)
-        ])
+        recordMap = await getPage(pageId)
 
         if (useUriToPageIdCache) {
           try {
@@ -75,7 +68,7 @@ export async function resolveNotionPage(domain: string, rawPageId?: string) {
             await db.set(cacheKey, pageId, cacheTTL)
 
             // console.log(`redis set "${cacheKey}"`, pageId, { cacheTTL })
-          } catch (err) {
+          } catch (err: any) {
             // ignore redis errors
             console.warn(`redis error set "${cacheKey}"`, err.message)
           }
@@ -91,13 +84,12 @@ export async function resolveNotionPage(domain: string, rawPageId?: string) {
       }
     }
   } else {
-    site = await getSiteForDomain(domain)
     pageId = site.rootNotionPageId
 
     console.log(site)
     recordMap = await getPage(pageId)
   }
 
-  const props = { site, recordMap, pageId }
+  const props: PageProps = { site, recordMap, pageId }
   return { ...props, ...(await acl.pageAcl(props)) }
 }

@@ -1,4 +1,6 @@
-import { ExtendedRecordMap, PageMap } from 'notion-types'
+import { type ParsedUrlQuery } from 'node:querystring'
+
+import { type ExtendedRecordMap, type PageMap } from 'notion-types'
 
 export * from 'notion-types'
 
@@ -16,20 +18,20 @@ export interface PageProps {
   error?: PageError
 }
 
-export interface Model {
-  id: string
-  userId: string
-
-  createdAt: number
-  updatedAt: number
+export interface ExtendedTweetRecordMap extends ExtendedRecordMap {
+  tweets: Record<string, any>
 }
 
-export interface Site extends Model {
+export interface Params extends ParsedUrlQuery {
+  pageId: string
+}
+
+export interface Site {
   name: string
   domain: string
 
   rootNotionPageId: string
-  rootNotionSpaceId: string
+  rootNotionSpaceId: string | null
 
   // settings
   html?: string
@@ -40,10 +42,6 @@ export interface Site extends Model {
   // opengraph metadata
   description?: string
   image?: string
-
-  timestamp: Date
-
-  isDisabled: boolean
 }
 
 export interface SiteMap {
@@ -66,4 +64,14 @@ export interface PageUrlOverridesInverseMap {
   // maps from a notion page id to the URL path the page should be resolved to
   // (this overrides the built-in URL path generation for these pages)
   [pageId: string]: string
+}
+
+export interface NotionPageInfo {
+  pageId: string
+  title: string
+  image?: string
+  imageObjectPosition?: string
+  author?: string
+  authorImage?: string
+  detail?: string
 }

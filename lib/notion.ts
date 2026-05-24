@@ -1,22 +1,25 @@
+import {
+  type ExtendedRecordMap,
+  type SearchParams,
+  type SearchResults
+} from 'notion-types'
+import { mergeRecordMaps } from 'notion-utils'
 import pMap from 'p-map'
 import pMemoize from 'p-memoize'
-import { ExtendedRecordMap, SearchParams, SearchResults } from 'notion-types'
-import { mergeRecordMaps } from 'notion-utils'
 
-import { notion } from './notion-api'
-import { getPreviewImageMap } from './preview-images'
-import { getTweetAstMap } from './tweet-embeds'
 import {
   isPreviewImageSupportEnabled,
-  isTweetEmbedSupportEnabled,
-  navigationStyle,
-  navigationLinks
+  navigationLinks,
+  navigationStyle
 } from './config'
+import { getTweetsMap } from './get-tweets'
+import { notion } from './notion-api'
+import { getPreviewImageMap } from './preview-images'
 
 const getNavigationLinkPages = pMemoize(
   async (): Promise<ExtendedRecordMap[]> => {
     const navigationLinkPageIds = (navigationLinks || [])
-      .map((link) => link.pageId)
+      .map((link) => link?.pageId)
       .filter(Boolean)
 
     if (navigationStyle !== 'default' && navigationLinkPageIds.length) {
@@ -62,10 +65,7 @@ export async function getPage(pageId: string): Promise<ExtendedRecordMap> {
     ;(recordMap as any).preview_images = previewImageMap
   }
 
-  if (isTweetEmbedSupportEnabled) {
-    const tweetAstMap = await getTweetAstMap(recordMap)
-    ;(recordMap as any).tweetAstMap = tweetAstMap
-  }
+  await getTweetsMap(recordMap)
 
   return recordMap
 }
