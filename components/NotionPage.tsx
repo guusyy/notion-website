@@ -111,8 +111,9 @@ const Code = dynamic(() =>
   })
 )
 
-const Collection = dynamic(() =>
-  import('react-notion-x/third-party/collection').then((m) => m.Collection)
+const Collection = dynamic(
+  () => import('react-notion-x/third-party/collection').then((m) => m.Collection),
+  { ssr: false }
 )
 const Equation = dynamic(() =>
   import('react-notion-x/third-party/equation').then((m) => m.Equation)
@@ -213,7 +214,12 @@ export function NotionPage({
   // lite mode is for oembed
   const isLiteMode = lite === 'true'
 
-  const { isDarkMode } = useDarkMode()
+  const { isDarkMode: isDarkModeClient } = useDarkMode()
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+  // Avoid SSR/CSR mismatch: server always renders light; client switches after mount.
+  // The inline noflash script in _document.tsx prevents a visible flash on body.
+  const isDarkMode = mounted ? isDarkModeClient : false
 
   const siteMapPageUrl = React.useMemo(() => {
     const params: any = {}
